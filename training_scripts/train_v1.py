@@ -3,6 +3,7 @@ import argparse
 import os
 import json
 import numpy as np
+import datetime
 
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.utils import set_random_seed
@@ -38,11 +39,7 @@ def main(args):
         "net_arch": None,  # you may pass dict like {"pi":[64,64],"vf":[64,64]}
     }
 
-    #old block
-    # os.makedirs(args.save_dir, exist_ok=True)
-    # tensorboard_log = os.path.join(args.save_dir, "tensorboard")
-
-        # dynamic tensorboard log folder
+    # dynamic tensorboard log folder
     if args.run_name:
         log_subfolder = args.run_name
     else:
@@ -90,7 +87,13 @@ def main(args):
     )
     model.set_logger(new_logger)
 
-    callback = TensorboardPnlCallback(verbose=1, log_freq=args.log_freq)
+    # OLD LINE
+    # callback = TensorboardPnlCallback(verbose=1, log_freq=args.log_freq)
+
+    callback = TensorboardPnlCallback(
+    verbose=1,
+    log_freq=args.log_freq,
+    initial_amount=args.initial_amount)
 
     print("Starting learn()")
     model.learn(total_timesteps=hp["total_timesteps"], callback=callback)
