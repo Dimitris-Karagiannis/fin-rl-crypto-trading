@@ -38,8 +38,17 @@ def main(args):
         "net_arch": None,  # you may pass dict like {"pi":[64,64],"vf":[64,64]}
     }
 
-    os.makedirs(args.save_dir, exist_ok=True)
-    tensorboard_log = os.path.join(args.save_dir, "tensorboard")
+    #old block
+    # os.makedirs(args.save_dir, exist_ok=True)
+    # tensorboard_log = os.path.join(args.save_dir, "tensorboard")
+
+        # dynamic tensorboard log folder
+    if args.run_name:
+        log_subfolder = args.run_name
+    else:
+        log_subfolder = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    tensorboard_log = os.path.join(args.save_dir, "tensorboard", log_subfolder)
+    os.makedirs(tensorboard_log, exist_ok=True)
 
     env = build_vec_env(args.train_csv, n_envs=args.n_envs, seed=args.seed,
                         initial_amount=args.initial_amount, hmax=args.hmax,
@@ -60,16 +69,6 @@ def main(args):
         enable_critic_lstm = bool(args.enable_critic_lstm),
         net_arch = hp["net_arch"]
     )
-
-
-    #  OLD BLOCK
-    # # policy kwargs for Recurrent actor-critic policy
-    # policy_kwargs = dict(
-    #     lstm_hidden_size=hp["lstm_hidden_size"],
-    #     n_lstm_layers=hp["n_lstm_layers"],
-    #     shared_lstm=hp["shared_lstm"],
-    #     net_arch=hp["net_arch"],
-    # )
 
     # configure SB3 logger to also print to stdout + TB dir
     new_logger = configure(tensorboard_log, ["stdout", "tensorboard"])
@@ -114,12 +113,13 @@ if __name__ == "__main__":
     p.add_argument("--lstm_hidden_size", type=int, default=256)
     p.add_argument("--n_lstm_layers", type=int, default=1)
 
+    p.add_argument("--run_name", type=str, default=None, help="optional run name for tensorboard folder")
 
-    # p.add_argument("--shared_lstm", type=bool, default=True)
     # LSTM mode flags:
     # By default we use a shared LSTM (actor + critic share the same LSTM).
     # Use --disable_shared_lstm to disable that (actor-only LSTM), and
     # use --enable_critic_lstm to create a separate LSTM for the critic.
+
     p.add_argument("--shared_lstm", dest="shared_lstm", action="store_true",
                    help="Use a shared LSTM for actor + critic (default).")
     p.add_argument("--disable_shared_lstm", dest="shared_lstm", action="store_false",
