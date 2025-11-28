@@ -39,8 +39,6 @@ def main(args):
         "net_arch": None,  # you may pass dict like {"pi":[64,64],"vf":[64,64]}
     }
 
-    #NEW BLOCK
-    # create save_dir
     os.makedirs(args.save_dir, exist_ok=True)
 
     # determine tensorboard log folder
@@ -54,16 +52,6 @@ def main(args):
         log_subfolder = args.run_name if args.run_name else datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         tensorboard_log = os.path.join(args.save_dir, "tensorboard", log_subfolder)
         os.makedirs(tensorboard_log, exist_ok=True)
-
-    # OLD BLOCK
-    # dynamic tensorboard log folder
-    # if args.run_name:
-    #     log_subfolder = args.run_name
-    # else:
-    #     log_subfolder = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    # tensorboard_log = os.path.join(args.save_dir, "tensorboard", log_subfolder)
-
-    # os.makedirs(tensorboard_log, exist_ok=True)
 
     env = build_vec_env(args.train_csv, n_envs=args.n_envs, seed=args.seed,
                         initial_amount=args.initial_amount, hmax=args.hmax,
