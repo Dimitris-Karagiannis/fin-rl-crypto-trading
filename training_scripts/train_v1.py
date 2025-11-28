@@ -46,13 +46,30 @@ def main(args):
                         transaction_cost_pct=args.transaction_cost_pct,
                         reward_scaling=args.reward_scaling)
 
-    # policy kwargs for Recurrent actor-critic policy
+
+        # enforce exclusive choice for critic LSTM mode
+    if args.shared_lstm and args.enable_critic_lstm:
+        raise ValueError("shared_lstm and enable_critic_lstm cannot both be True. "
+                         "Choose either shared LSTM (default) or a separate critic LSTM.")
+
     policy_kwargs = dict(
         lstm_hidden_size=hp["lstm_hidden_size"],
         n_lstm_layers=hp["n_lstm_layers"],
-        shared_lstm=hp["shared_lstm"],
-        net_arch=hp["net_arch"],
+        # explicit flags expected by sb3_contrib's recurrent policies
+        shared_lstm = bool(args.shared_lstm),
+        enable_critic_lstm = bool(args.enable_critic_lstm),
+        net_arch = hp["net_arch"]
     )
+
+
+    #  OLD BLOCK
+    # # policy kwargs for Recurrent actor-critic policy
+    # policy_kwargs = dict(
+    #     lstm_hidden_size=hp["lstm_hidden_size"],
+    #     n_lstm_layers=hp["n_lstm_layers"],
+    #     shared_lstm=hp["shared_lstm"],
+    #     net_arch=hp["net_arch"],
+    # )
 
     # configure SB3 logger to also print to stdout + TB dir
     new_logger = configure(tensorboard_log, ["stdout", "tensorboard"])
@@ -96,7 +113,23 @@ if __name__ == "__main__":
     p.add_argument("--clip_range", type=float, default=0.2)
     p.add_argument("--lstm_hidden_size", type=int, default=256)
     p.add_argument("--n_lstm_layers", type=int, default=1)
-    p.add_argument("--shared_lstm", type=bool, default=True)
+
+
+    # p.add_argument("--shared_lstm", type=bool, default=True)
+    # LSTM mode flags:
+    # By default we use a shared LSTM (actor + critic share the same LSTM).
+    # Use --disable_shared_lstm to disable that (actor-only LSTM), and
+    # use --enable_critic_lstm to create a separate LSTM for the critic.
+    p.add_argument("--shared_lstm", dest="shared_lstm", action="store_true",
+                   help="Use a shared LSTM for actor + critic (default).")
+    p.add_argument("--disable_shared_lstm", dest="shared_lstm", action="store_false",
+                   help="Disable shared LSTM (use actor-only LSTM unless --enable_critic_lstm is set).")
+    p.set_defaults(shared_lstm=True)
+
+    p.add_argument("--enable_critic_lstm", action="store_true", default=False,
+                   help="Create a separate LSTM for the critic (mutually exclusive with shared_lstm).")
+
+
     p.add_argument("--n_envs", type=int, default=1)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--initial_amount", type=float, default=1000.0)
