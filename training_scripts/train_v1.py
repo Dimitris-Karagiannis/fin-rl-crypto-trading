@@ -39,13 +39,31 @@ def main(args):
         "net_arch": None,  # you may pass dict like {"pi":[64,64],"vf":[64,64]}
     }
 
-    # dynamic tensorboard log folder
-    if args.run_name:
-        log_subfolder = args.run_name
+    #NEW BLOCK
+    # create save_dir
+    os.makedirs(args.save_dir, exist_ok=True)
+
+    # determine tensorboard log folder
+    if args.resume_tensorboard_log:
+        # continue logging to previous folder
+        tensorboard_log = args.resume_tensorboard_log
+        if not os.path.exists(tensorboard_log):
+            raise ValueError(f"Resume tensorboard log path does not exist: {tensorboard_log}")
     else:
-        log_subfolder = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    tensorboard_log = os.path.join(args.save_dir, "tensorboard", log_subfolder)
-    os.makedirs(tensorboard_log, exist_ok=True)
+        # new run
+        log_subfolder = args.run_name if args.run_name else datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        tensorboard_log = os.path.join(args.save_dir, "tensorboard", log_subfolder)
+        os.makedirs(tensorboard_log, exist_ok=True)
+
+    # OLD BLOCK
+    # dynamic tensorboard log folder
+    # if args.run_name:
+    #     log_subfolder = args.run_name
+    # else:
+    #     log_subfolder = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    # tensorboard_log = os.path.join(args.save_dir, "tensorboard", log_subfolder)
+
+    # os.makedirs(tensorboard_log, exist_ok=True)
 
     env = build_vec_env(args.train_csv, n_envs=args.n_envs, seed=args.seed,
                         initial_amount=args.initial_amount, hmax=args.hmax,
@@ -70,25 +88,34 @@ def main(args):
     # configure SB3 logger to also print to stdout + TB dir
     new_logger = configure(tensorboard_log, ["stdout", "tensorboard"])
 
-    model = RecurrentPPO(
-        policy="MlpLstmPolicy",
-        env=env,
-        verbose=1,
-        n_steps=hp["n_steps"],
-        batch_size=hp["batch_size"],
-        n_epochs=hp["n_epochs"],
-        gamma=hp["gamma"],
-        learning_rate=hp["learning_rate"],
-        ent_coef=hp["ent_coef"],
-        vf_coef=hp["vf_coef"],
-        clip_range=hp["clip_range"],
-        policy_kwargs=policy_kwargs,
-        tensorboard_log=tensorboard_log,
-    )
-    model.set_logger(new_logger)
-
-    # OLD LINE
-    # callback = TensorboardPnlCallback(verbose=1, log_freq=args.log_freq)
+    # load existing model or create new
+    if args.load_model:
+        print(f"Loading model from {args.load_model}")
+        model = RecurrentPPO.load(
+            args.load_model,
+            env=env,
+            tensorboard_log=tensorboard_log
+        )
+        model.set_logger(new_logger)
+        reset_timesteps = False
+    else:
+        model = RecurrentPPO(
+            policy="MlpLstmPolicy",
+            env=env,
+            verbose=1,
+            n_steps=hp["n_steps"],
+            batch_size=hp["batch_size"],
+            n_epochs=hp["n_epochs"],
+            gamma=hp["gamma"],
+            learning_rate=hp["learning_rate"],
+            ent_coef=hp["ent_coef"],
+            vf_coef=hp["vf_coef"],
+            clip_range=hp["clip_range"],
+            policy_kwargs=policy_kwargs,
+            tensorboard_log=tensorboard_log
+        )
+        model.set_logger(new_logger)
+        reset_timesteps = True
 
     callback = TensorboardPnlCallback(
     verbose=1,
@@ -96,7 +123,9 @@ def main(args):
     initial_amount=args.initial_amount)
 
     print("Starting learn()")
-    model.learn(total_timesteps=hp["total_timesteps"], callback=callback)
+
+    model.learn(total_timesteps=hp["total_timesteps"], callback=callback, reset_num_timesteps=reset_timesteps)
+
     model.save(os.path.join(args.save_dir, "final_model.zip"))
     print("Model saved to", os.path.join(args.save_dir, "final_model.zip"))
 
@@ -117,6 +146,9 @@ if __name__ == "__main__":
     p.add_argument("--n_lstm_layers", type=int, default=1)
 
     p.add_argument("--run_name", type=str, default=None, help="optional run name for tensorboard folder")
+    p.add_argument("--load_model", type=str, default=None, help="Path to saved model to continue training")
+    p.add_argument("--resume_tensorboard_log", type=str, default=None,
+                   help="Path to previous tensorboard log folder to continue same run")
 
     # LSTM mode flags:
     # By default we use a shared LSTM (actor + critic share the same LSTM).
