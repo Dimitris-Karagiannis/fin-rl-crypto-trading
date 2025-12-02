@@ -36,7 +36,10 @@ def main(args):
         "lstm_hidden_size": args.lstm_hidden_size,
         "n_lstm_layers": args.n_lstm_layers,
         "shared_lstm": args.shared_lstm,
-        "net_arch": None,  # you may pass dict like {"pi":[64,64],"vf":[64,64]}
+        "gae_lambda": args.gae_lambda,
+        "max_grad_norm": args.max_grad_norm,
+        "lstm_dropout": args.lstm_dropout,
+        "net_arch": dict(pi=[64],vf=[64],lstm=[256])  # you may pass dict like {"pi":[64,64],"vf":[64,64]}
     }
 
     os.makedirs(args.save_dir, exist_ok=True)
@@ -67,6 +70,7 @@ def main(args):
     policy_kwargs = dict(
         lstm_hidden_size=hp["lstm_hidden_size"],
         n_lstm_layers=hp["n_lstm_layers"],
+        # lstm_dropout=hp["lstm_dropout"],
         # explicit flags expected by sb3_contrib's recurrent policies
         shared_lstm = bool(args.shared_lstm),
         enable_critic_lstm = bool(args.enable_critic_lstm),
@@ -99,6 +103,9 @@ def main(args):
             ent_coef=hp["ent_coef"],
             vf_coef=hp["vf_coef"],
             clip_range=hp["clip_range"],
+            gae_lambda=hp["gae_lambda"],
+            max_grad_norm=hp["max_grad_norm"],
+            # lstm_dropout=hp["lstm_dropout"],
             policy_kwargs=policy_kwargs,
             tensorboard_log=tensorboard_log
         )
@@ -121,18 +128,20 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--train_csv", type=str, required=True, help="path to training CSV (15m candles)")
     p.add_argument("--save_dir", type=str, default="./models", help="where to save model + TB logs")
-    p.add_argument("--total_timesteps", type=int, default=200_000)
-    p.add_argument("--n_steps", type=int, default=64, help="rollout length; smaller values often used for RNNs")
-    p.add_argument("--batch_size", type=int, default=64)
-    p.add_argument("--n_epochs", type=int, default=4)
+    p.add_argument("--total_timesteps", type=int, default=200000)
+    p.add_argument("--n_steps", type=int, default=2048, help="rollout length; smaller values often used for RNNs")
+    p.add_argument("--batch_size", type=int, default=512)
+    p.add_argument("--n_epochs", type=int, default=10)
     p.add_argument("--gamma", type=float, default=0.99)
-    p.add_argument("--learning_rate", type=float, default=3e-4)
-    p.add_argument("--ent_coef", type=float, default=0.0)
+    p.add_argument("--gae_lambda", type=float, default=0.95)
+    p.add_argument("--max_grad_norm", type=float, default=0.5)
+    p.add_argument("--lstm_dropout", type=float, default=0.2)
+    p.add_argument("--learning_rate", type=float, default=3e-5)
+    p.add_argument("--ent_coef", type=float, default=0.005)
     p.add_argument("--vf_coef", type=float, default=0.5)
     p.add_argument("--clip_range", type=float, default=0.2)
     p.add_argument("--lstm_hidden_size", type=int, default=256)
     p.add_argument("--n_lstm_layers", type=int, default=1)
-
     p.add_argument("--run_name", type=str, default=None, help="optional run name for tensorboard folder")
     p.add_argument("--load_model", type=str, default=None, help="Path to saved model to continue training")
     p.add_argument("--resume_tensorboard_log", type=str, default=None,

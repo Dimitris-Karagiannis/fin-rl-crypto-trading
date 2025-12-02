@@ -7,7 +7,7 @@ import time
 # -----------------------
 # USER INPUT
 # -----------------------
-train_start = "2020-09-14"     #(YYYY-MM-DD HH:MM:SS)
+train_start = "2018-07-01"     #(YYYY-MM-DD HH:MM:SS)
 test_start = "2023-12-31"
 
 # Convert to milliseconds
@@ -18,10 +18,10 @@ since_test = int(pd.to_datetime(test_start).timestamp() * 1000)
 # CONFIG
 # -----------------------
 exchange = ccxt.binance()
-symbol = 'SOL/USDT'
+symbol = 'ADA/USDT'
 timeframe = '15m'
-train_file = 'data/sol_usdt_15m_train.csv'
-test_file = 'data/sol_usdt_15m_test.csv'
+train_file = 'data/ada_usdt_15m_train.csv'
+test_file = 'data/ada_usdt_15m_test.csv'
 
 # -----------------------
 # FETCH TRAINING DATA
