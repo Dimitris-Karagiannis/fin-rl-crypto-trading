@@ -122,6 +122,11 @@ class SolTradingEnv(gym.Env):
         self._update_account_value()
         reward = (self.account_value - prev_value) * self.reward_scaling
 
+        # Early termination if account value < 10% of initial
+        if self.account_value < 0.1 * self.initial_amount:
+            done = True
+            info["early_termination"] = True
+
         obs = self._get_obs()
         info["account_value"] = self.account_value
         info["cash"] = self.cash

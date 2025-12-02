@@ -1,0 +1,27 @@
+train_csv: "./data/ada_usdt_15m_train_mini.csv"
+save_dir: "./models/ada_tr_2"
+run_name: "ada_run_3"
+total_timesteps: 100000
+n_steps: 64
+batch_size: 64
+n_epochs: 4
+gamma: 0.99
+gae_lambda: 0.95
+learning_rate: 3e-5
+ent_coef: 0.005
+vf_coef: 0.5
+clip_range: 0.2
+max_grad_norm: 0.5
+lstm_hidden_size: 256
+n_lstm_layers: 1
+shared_lstm: true
+enable_critic_lstm: false
+net_arch:
+  pi: [256, 256]
+  vf: [256, 256]
+  lstm: [256]
+log_freq: 500
+initial_amount: 1000.0
+hmax: 5000
+transaction_cost_pct: 0.001
+reward_scaling: 1.0
